@@ -15,6 +15,7 @@ tests += test-log
 tests += test-fatal
 tests += test-error
 tests += test-string
+tests += test-tree
 
 harnesses += test-fatal-harness
 

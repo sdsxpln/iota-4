@@ -16,6 +16,7 @@ objects += warning.o
 objects += trace.o
 objects += debug.o
 objects += string.o
+objects += tree.o
 
 export objects
 
