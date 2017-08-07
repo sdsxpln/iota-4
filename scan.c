@@ -1,20 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+#include <errno.h>
 #include <regex.h>
 
-static int MXLNSZ = 0x80;
-static int MXNLN = 0x8e3;
+#define MAX_LINE_SIZE 200
+#define MAX_SCRIPT_LINE_COUNT 40000
 
-struct tnode {
+struct treenode {
     char *word;
     int count;
-    struct tnode *left;
-    struct tnode *right;
+    struct treenode *left;
+    struct treenode *right;
 };
 
-struct tnode *addtree(struct tnode *p, char *w) {
+struct scriptline {
+    char text[MXLNSZ];
+};
 
+struct script {
+};
+
+struct tnode *addtree(struct tnode *p, char *w)
+{
     int cond;
 
     if (p == NULL) {
@@ -23,6 +32,7 @@ struct tnode *addtree(struct tnode *p, char *w) {
         if (p->word != NULL)
             strcpy(p->word, w);
         p->count = 1;
+        p->left = p->right = NULL;
     } else if ((cond = strcmp(w, p->word)) == 0) {
         p->count++;
     } else if (cond < 0) {
@@ -34,8 +44,20 @@ struct tnode *addtree(struct tnode *p, char *w) {
     return p;
 }
 
-int main(int argc, char **argv) {
+void treeprint(
+    FILE *stream,
+    struct tnode *p
+)
+{
+    if (p != NULL) {
+        treeprint(stream, p->left);
+        fprintf(stream, "%4d %s\n", p->count, p->word);
+        treeprint(stream, p->right);
+    }
+}
 
+int main(int argc, char **argv)
+{
     int e = 0;
     FILE *sin = stdin;
     FILE *sout = stdout;
@@ -56,27 +78,27 @@ int main(int argc, char **argv) {
     regex_t rint;
     regex_t rchr;
 
-    regmatch_t rm;
-    size_t rnm = 0;
     size_t rerr = 0;
     size_t rerrbfsz = 0x80;
     char rerrbf[rerrbfsz];
 
     struct tnode *root = NULL;
 
-    if ((e = regcomp(&rext, "[[:digit:]]*[[:blank:]]+EXT[.]", REG_EXTENDED | REG_NEWLINE)) != 0) {
+    struct scriptline script[MXNLN];
+
+    if ((e = regcomp(&rext, "[[:digit:]]*[[:blank:]]+EXT[.]", REG_EXTENDED)) != 0) {
         rerr = regerror(e, &rext, rerrbf, rerrbfsz);
         fprintf(serr, "ERROR: %s %lu, line: [%d]\n", rerrbf, rerr, __LINE__);
         exit(1);
     }
 
-    if ((e = regcomp(&rint, "[[:digit:]]*[[:blank:]]+INT[.]", REG_EXTENDED | REG_NEWLINE)) != 0) {
+    if ((e = regcomp(&rint, "[[:digit:]]*[[:blank:]]+INT[.]", REG_EXTENDED)) != 0) {
         rerr = regerror(e, &rext, rerrbf, rerrbfsz);
         fprintf(serr, "ERROR: %s %lu, line: [%d]\n", rerrbf, rerr, __LINE__);
         exit(1);
     }
 
-    if ((e = regcomp(&rchr, "^[[:blank:]]+([A-Z]+)$", REG_EXTENDED | REG_NEWLINE)) != 0) {
+    if ((e = regcomp(&rchr, "^[[:blank:]]{16,}([A-Z]+)[[:blank:]]*$", REG_EXTENDED|REG_NEWLINE)) != 0) {
         rerr = regerror(e, &rext, rerrbf, rerrbfsz);
         fprintf(serr, "ERROR: %s %lu, line: [%d]\n", rerrbf, rerr, __LINE__);
         exit(1);
@@ -89,8 +111,7 @@ int main(int argc, char **argv) {
 
     while ((fgets(lnbf, lnbfsz, sin) != NULL)) {
 
-        ;
-        if ((e = regexec(&rext, lnbf, rnm, &rm, REG_NOTEOL) == 0))  {
+        if ((e = regexec(&rext, lnbf, 0, NULL, REG_NOTBOL|REG_NOTEOL)) == 0)  {
             scnext++;
         } else {
             if (e != REG_NOMATCH) {
@@ -100,34 +121,42 @@ int main(int argc, char **argv) {
             }
         }
 
-        if ((e = regexec(&rint, lnbf, rnm, &rm, REG_NOTEOL) == 0)) {
+        if ((e = regexec(&rint, lnbf, 0, NULL, REG_NOTBOL|REG_NOTEOL)) == 0) {
             scnint++;
         } else {
-            rerr = regerror(e, &rext, rerrbf, rerrbfsz);
-            fprintf(serr, "ERROR: %s %lu, line: [%d]\n", rerrbf, rerr, __LINE__);
-            exit(1);
+            if (e != REG_NOMATCH) {
+                rerr = regerror(e, &rext, rerrbf, rerrbfsz);
+                fprintf(serr, "ERROR: [%d] [%s] [%lu], line: [%d]\n", e, rerrbf, rerr, __LINE__);
+                exit(1);
+            }
         }
 
-        if ((e = regexec(&rchr, lnbf, rnm, &rm, REG_NOTEOL)) == 0) {
+        size_t rnm = 2;
+        regmatch_t rm[rnm];
+        if ((e = regexec(&rchr, lnbf, rnm, rm, 0)) == 0) {
             scnchr++;
-            root = addtree(root, &lnbf[rm.rm_so]);
+            assert(rm != NULL);
+            root = addtree(root, &lnbf[rm[1].rm_so]);
         } else {
-            rerr = regerror(e, &rext, rerrbf, rerrbfsz);
-            fprintf(serr, "ERROR: %s %lu, line: [%d]\n", rerrbf, rerr, __LINE__);
-            exit(1);
+            if (e != REG_NOMATCH) {
+                rerr = regerror(e, &rext, rerrbf, rerrbfsz);
+                fprintf(
+                    serr, "ERROR:: errno: [%d], errstr: [%s], \
+                        lnbf: [%s], \
+                        regerr: [%lu], line: [%d]\n",
+                    e, rerrbf, lnbf, rerr, __LINE__
+                );
+                exit(1);
+            }
         }
 
+//        fprintf(serr, "%d %s\n", scln, lnbf);
+        memcpy(script[scln].text, lnbf, MXLNSZ-1);
+        if (errno != 0) {
+            fprintf(serr, "ERROR %d %s\n", errno, strerror(errno));
+            exit(1);
+        }
         scln++;
-//        if ((scln % scrlnprt == 0)) {
-//            fprintf(
-//                sout, "%d\t%d\t%d\t%d\n",
-//                scrprti, scrnext, scrnint, scrnchr
-//            );
-//            scrnext = 0;
-//            scrnint = 0;
-//            scrnchr = 0;
-//            scrprti++;
-//        }
 
     }
 
@@ -135,6 +164,8 @@ int main(int argc, char **argv) {
         sout, "%d\t%d\t%d\t%d\n",
         scln, scnext, scnint, scnchr
     );
+
+    treeprint(sout, root);
 
     regfree(&rext);
     regfree(&rint);
