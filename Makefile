@@ -16,7 +16,10 @@ objects += warning.o
 objects += trace.o
 objects += debug.o
 objects += string.o
-objects += tree.o
+objects += variant.o
+objects += list.o
+objects += buffer.o
+objects += doc.o
 
 export objects
 
