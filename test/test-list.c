@@ -10,6 +10,8 @@
 #include <assert.h>
 #include "beta/list.h"
 
+const char *module;
+
 static int test_list_0001()
 {
     int status = 0;
@@ -46,9 +48,16 @@ static int test_list_0001()
     return 0;
 }
 
-int main(void)
+int main(int argc, const char **argv)
 {
+    assert(argc != 0);
+    module = argv[0];
+
+    log_init(module);
+
     if (test_list_0001()) assert(0);
+
+    log_deinit(module);
 
     exit(EXIT_SUCCESS);
 }

@@ -11,6 +11,8 @@
 #include "beta/log.h"
 #include "beta/error.h"
 
+const char *module;
+
 static int test_error_0005()
 {
     int status;
@@ -90,7 +92,7 @@ static int test_error_0001()
 int main(int argc, const char **argv)
 {
     assert(argc != 0);
-    const char *module = argv[0];
+    module = argv[0];
 
     log_init(module);
 
