@@ -12,6 +12,7 @@ struct list;
 
 int list_length(const struct list *list);
 struct list_node *list_next_node(const struct list_node *node);
+struct list_node *list_head(const struct list *list);
 void *list_node_data(const struct list_node *node, size_t *size);
 void list_destroy_node(struct list_node **node);
 void list_delete_node(struct list *list, const struct list_node *node);

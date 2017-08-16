@@ -6,6 +6,7 @@ CC = cc
 CFLAGS = -g -O0
 CFLAGS += -Wall -Wextra
 CFLAGS += -iquote../..
+SYM = .dSYM
 
 QUIET_CC = @echo CC $@;
 

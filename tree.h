@@ -9,15 +9,13 @@
 
 #include <stdio.h>
 
-struct tree_node {
-    char *word;
-    int count;
-    struct tree_node *left;
-    struct tree_node *right;
-};
+struct tree_node;
+struct tree;
 
-struct tree_node *tree_add_node(struct tree_node *tree_node, const char *word);
-void tree_print(FILE *stream, struct tree_node *tree_node);
+void tree_print(FILE *stream, const struct tree *tree);
+struct tree_node *tree_add(struct tree *tree, const void *object, size_t size);
+void tree_free(struct tree **tree);
+int tree_init(struct tree **tree, int (* compare)(const void *, const void *));
 
 #endif
 

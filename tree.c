@@ -11,49 +11,104 @@
 #include "beta/error.h"
 #include "beta/tree.h"
 
-static struct tree_node *tree_node_create(const char *word)
-{
-    struct tree_node *tree_node = NULL;
+struct tree_node {
+    void *object;
+    int count;
+    struct tree_node *left;
+    struct tree_node *right;
+};
 
-    tree_node = (struct tree_node *)malloc(sizeof(struct tree_node));
-    if (!tree_node) {
+struct tree {
+    int (* compare)(const void *, const void *);
+    struct tree_node *root;
+};
+
+static void tree_print_node(FILE *stream, const struct tree_node *node)
+{
+    if (node) {
+        tree_print_node(stream, node->left);
+        fprintf(stream, "%4d %s\n", node->count, node->object);
+        tree_print_node(stream, node->right);
+    }
+}
+
+void tree_print(FILE *stream, const struct tree *tree)
+{
+    tree_print_node(stream, tree->root);
+}
+
+static struct tree_node *tree_create_node(const void *object, size_t size)
+{
+    struct tree_node *node = NULL;
+
+    node = (struct tree_node *)malloc(sizeof(struct tree_node));
+    if (!node) {
         error("failed to allocate memory for a tree node");
         return NULL;
     }
-    if (!(tree_node->word = (char *)malloc(strlen(word) + 1))) {
-        error("failed to allocate memory for a tree node word");
+    if (!(node->object = malloc(size))) {
+        error("failed to allocate memory for a tree node object");
         return NULL;
     }
-    if (tree_node->word)
-        strcpy(tree_node->word, word);
-    tree_node->left = tree_node->right = NULL;
-    tree_node->count = 1;
+    memcpy(node->object, object, size);
+    node->left = node->right = NULL;
+    node->count = 1;
 
-    return tree_node;
+    return node;
 }
 
-struct tree_node *tree_add_node(struct tree_node *tree_node, const char *word)
+static struct tree_node *tree_add_node(struct tree *tree, struct tree_node *node,
+        const void *object, size_t size)
 {
-    int comparison;
+    int cond;
 
-    if (!tree_node)
-        tree_node = tree_node_create(word);
-    else if ((comparison = strcmp(word, tree_node->word)) == 0)
-        tree_node->count++;
-    else if (comparison < 0)
-        tree_node->left = tree_add_node(tree_node->left, word);
+    if (!node)
+        node = tree_create_node(object, size);
+    else if ((cond = tree->compare(object, node->object)) == 0)
+        node->count++;
+    else if (cond < 0)
+        node->left = tree_add_node(tree, node->left, object, size);
     else
-        tree_node->right = tree_add_node(tree_node->right, word);
+        node->right = tree_add_node(tree, node->right, object, size);
 
-    return tree_node;
+    return node;
 }
 
-void tree_print(FILE *stream, struct tree_node *tree_node)
+struct tree_node *tree_add(struct tree *tree, const void *object, size_t size)
 {
-    if (tree_node != NULL) {
-        tree_print(stream, tree_node->left);
-        fprintf(stream, "%4d %s\n", tree_node->count, tree_node->word);
-        tree_print(stream, tree_node->right);
+    struct tree_node *node = NULL;
+    
+    node = tree_add_node(tree, tree->root, object, size);
+    if (tree->root == NULL)
+        tree->root = node;
+
+    return node;
+}
+
+static void tree_free_node(struct tree_node *node)
+{
+    if (node) {
+        tree_free_node(node->left);
+        free(node->object);
+        tree_free_node(node->right);
+        free(node);
+        node = NULL;
     }
+}
+
+void tree_free(struct tree **tree)
+{
+    tree_free_node((*tree)->root);
+    free(*tree);
+    *tree = NULL;
+}
+
+int tree_init(struct tree **tree, int (* compare)(const void *, const void *))
+{
+    *tree = (struct tree *)malloc(sizeof(struct tree));
+    (*tree)->compare = compare;
+    (*tree)->root = NULL;
+
+    return 0;
 }
 

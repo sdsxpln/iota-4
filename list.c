@@ -32,6 +32,11 @@ struct list_node *list_next_node(const struct list_node *node)
     return node->next;
 }
 
+struct list_node *list_head(const struct list *list)
+{
+    return list->head;
+}
+
 void *list_node_data(const struct list_node *node, size_t *size)
 {
     if (size)
