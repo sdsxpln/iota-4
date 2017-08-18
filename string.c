@@ -6,9 +6,29 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 #include "beta/error.h"
 #include "beta/string.h"
+
+int string_word(FILE *f, char *w, size_t nc)
+{
+    char c;
+
+    while ((c = fgetc(f)) != EOF && !isalpha(c))
+        ;
+    if (c == EOF)
+        return EOF;
+    for (*w = c, --nc; nc > 0 && (c = fgetc(f)) && c != EOF; *++w = c, nc--) {
+        if (!isalpha(c)) {
+            ungetc(c, f);
+            break;
+        }
+    }
+    *++w = 0;
+
+    return 0;
+}
 
 void string_reverse(char *string)
 {
