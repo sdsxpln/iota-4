@@ -16,6 +16,7 @@ objects += error.o
 objects += warning.o
 objects += trace.o
 objects += debug.o
+objects += stream.o
 objects += string.o
 objects += variant.o
 objects += buffer.o
