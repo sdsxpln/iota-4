@@ -15,6 +15,22 @@ struct buffer {
     int length;
 };
 
+/*
+static int get_line_max()
+{
+    int x;
+
+    if (LINE_MAX >= DOC_LINE_MAX) {
+        x = DOC_LINE_MAX;
+    } else {
+        long y = sysconf(_SC_LINE_MAX);
+        x = y < 0 || y > DOC_LINE_MAX ? DOC_LINE_MAX : (int)y;
+    }
+
+    return x;
+}
+*/
+
 size_t buffer_size(const struct buffer *buffer)
 {
     return buffer->size;

@@ -138,7 +138,9 @@ void log_deinit(const char *module)
     const int status = errno;
 
     closelog();
+#ifdef TRACE
     trace("deinited log for [%s]", module);
+#endif
 
     errno = status;
 }
@@ -149,7 +151,9 @@ void log_init(const char *module)
 
     openlog(module, LOG_OPTION, LOG_FACILITY);
     setlogmask(LOG_UPTO(LOG_MASK));
+#ifdef TRACE
     trace("inited log for [%s]", module);
+#endif
 
     errno = status;
 }

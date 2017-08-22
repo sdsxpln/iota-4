@@ -1,8 +1,10 @@
 /*
- * a variant structures and routines
- * Copyright (C) 2013-2017 xinoir <xinoir@theta.black>
- * This file is part of beta.
- */
+
+variant structures and routines
+Copyright (C) 2013-2017 xinoir <xinoir@theta.black>
+This file is part of beta.
+
+*/
 
 #include <stdlib.h>
 #include <string.h>
@@ -37,11 +39,9 @@ int variant_create(const void *object, size_t size, struct variant **variant)
     *variant = (struct variant *)malloc(sizeof(struct variant));
     if (!*variant)
         return error("failed to allocate memory for a variant");
-
-    (*variant)->object= malloc(size);
+    (*variant)->object = malloc(size);
     if (!(*variant)->object)
         return error("failed to allocate memory for a variant object");
-
     memmove((*variant)->object, object, size);
     (*variant)->size = size;
 

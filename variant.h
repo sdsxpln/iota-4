@@ -1,8 +1,10 @@
 /*
- * a variant structures and routines
- * Copyright (C) 2013-2017 xinoir <xinoir@theta.black> 
- * This file is part of beta.
- */
+
+variant structures and routines
+Copyright (C) 2013-2017 xinoir <xinoir@theta.black> 
+This file is part of beta.
+
+*/
 
 #ifndef VARIANT_H
 #define VARIANT_H

@@ -4,25 +4,38 @@
 #include <ctype.h>
 #include <assert.h>
 #include <errno.h>
+#include "beta/log.h"
 #include "beta/error.h"
 #include "beta/notused.h"
 #include "beta/stream.h"
 #include "beta/list.h"
-
-#define WORD_MAX_LENGTH 256
-#define LINE_MAX_LENGTH 4096
+#include "beta/doc.h"
 
 int main(int argc, char **argv)
 {
     notused(argc);
     notused(argv);
+    int s = 0;
     int fdin = fileno(stdin);
-    char l[LINE_MAX_LENGTH] = {0};
-    int iseof = 0;
-    
-    while (!stream_read_line(fdin, l, LINE_MAX_LENGTH, &iseof) && !iseof)
-        fprintf(stdout, "%s\n", l);
+    struct doc *doc = NULL;
+    int l = 0;
 
+    log_init("scan");
+
+    if ((s = doc_create(&doc)))
+        return error("failed to create a doc");
+    if ((s = doc_read(fdin, doc)))
+        return error("failed to parse a doc");
+
+    l = doc_length(doc);
+    fprintf(stdout, "doc length: [%d]\n", l);
+    if ((s = doc_parse(doc)))
+        return error("failed to analyze a doc");
+
+    doc_destroy(&doc);
+
+    log_deinit("scan");
+    
     return 0;
 }
 
