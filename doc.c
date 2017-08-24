@@ -20,6 +20,7 @@ This file is part of Beta.
 #include "beta/doc.h"
 
 #define DOC_LINE_MAX 4096
+#define ERROR_MESSAGE_MAX 256
 
 enum doc_term_type {
     UNKNOWN,
@@ -34,70 +35,112 @@ struct doc_term {
     struct doc_line *line;
 };
 
-static struct doc_term_def {
-    enum doc_term_type type;
-    const char *pattern;
-    regex_t regex;
-} doc_term_defs[] = {
-    { EXTERNAL_SCENE, "^[[:blank:]]{2,}EXT.[[:blank:]]{1,}" },
-    { INTERNAL_SCENE, "^[[:blank:]]{2,}INT.[[:blank:]]{1,}" }
-};
-
 struct doc_line {
+    struct list *terms;
     char *text;
     int size;
+    int index;
 };
 
 struct doc {
-    struct list **terms;
+    struct list *terms;
     struct doc_line **lines;
     int length;
 };
 
-static int regex_error(int error, const regex_t *regex)
-{
-    size_t ree = 0;
-    char reeb[256];
+typedef int (* match_term_t)(struct doc_line **, struct doc_term **);
+static int regex_error(int en, const regex_t *regex);
 
-    ree = regerror(e, re, reeb, 256);
-    return error("error: [%d], message: [%s]\n", ree, reeb);
+static int match_internal_scene(struct doc_line **l, struct doc_term **t)
+{
+    int s = 0;
+    static const enum doc_term_type type = INTERNAL_SCENE;
+    static const char pattern[] = "^[[:blank:]]{2,}INT.[[:blank:]]{1,}";
+    static int regex_flag = 0;
+    static regex_t regex;
+    *t = NULL;
+
+    if (!regex_flag) {
+        if ((s = regcomp(&regex, pattern, REG_EXTENDED)) != 0)
+            return regex_error(s, &regex);
+        regex_flag = 1;
+    }
+
+    if (!regexec(&regex, (*l)->text, 0, NULL, 0)) {
+        if ((*(l-1))->size == 0 && (*(l+1))->size == 0) {
+            *t = (struct doc_term *)malloc(sizeof(struct doc_term));
+            (*t)->type = type;
+            (*t)->line = *l;
+        }
+    }
+
+    return s;
 }
 
-static int alloc_line(struct doc_line **l, size_t nb)
+static int match_external_scene(struct doc_line **line, struct doc_term **term)
 {
-    if (!(*l = malloc(sizeof(struct doc_line))))
+    int s = 0;
+    static const enum doc_term_type term_type = EXTERNAL_SCENE;
+    static const char pattern[] = "^[[:blank:]]{2,}EXT.[[:blank:]]{1,}";
+    static int regex_flag = 0;
+    static regex_t regex;
+    *term = NULL;
+
+    if (!regex_flag) {
+        if ((s = regcomp(&regex, pattern, REG_EXTENDED)) != 0)
+            return regex_error(s, &regex);
+        regex_flag = 1;
+    }
+
+    if (!regexec(&regex, (*line)->text, 0, NULL, 0)) {
+        if ((*(line-1))->size == 0 && (*(line+1))->size == 0) {
+            *term = (struct doc_term *)malloc(sizeof(struct doc_term));
+            (*term)->type = term_type;
+            (*term)->line = *line;
+        }
+    }
+
+    return s;
+}
+
+static int regex_error(int en, const regex_t *regex)
+{
+    size_t regex_en = 0;
+    char regex_em[ERROR_MESSAGE_MAX] = {0};
+
+    regex_en = regerror(en, regex, regex_em, sizeof regex_em);
+    return error("ERROR: number: [%d], message: [%s]\n", regex_en, regex_em);
+}
+
+static int doc_line_create(struct doc_line **line, size_t nb, const char *b, int index)
+{
+    if (!(*line = malloc(sizeof(struct doc_line))))
         return error("failed to allocate memory for a doc line");
-
-    if (nb > 1)
-        if (!((*l)->text = malloc(nb)))
-            return error("failed to allocate memory for a doc line text");
-
-    return 0;
-}
-
-static int create_line(struct doc_line **l, size_t nb, const char *b)
-{
-    int s;
-
-    if ((s = alloc_line(l, nb)))
-        return s;
-
     if (nb > 1) {
-        memcpy((*l)->text, b, nb);
-        (*l)->size = nb;
+        if (!((*line)->text = malloc(nb)))
+            return error("failed to allocate memory for a doc line text");
+        memcpy((*line)->text, b, nb);
+        (*line)->size = nb;
     }
     else {
-        (*l)->text = NULL;
-        (*l)->size = 0;
+        (*line)->text = NULL;
+        (*line)->size = 0;
     }
+    (*line)->terms = NULL;
+    (*line)->index = index;
 
     return 0;
 }
 
-static int alloc_doc(struct doc **doc)
+static int doc_line_append_term(struct doc_line *line, struct doc_term *term)
 {
-    if (!(*doc = malloc(sizeof(struct doc))))
-        return error("failed to allocate memory for a doc");
+    int s = 0;
+
+    if (!line->terms)
+        if ((s = list_create(&line->terms)))
+            return s;
+    if ((s = list_append(line->terms, term, NULL)))
+        return s;
 
     return 0;
 }
@@ -107,25 +150,47 @@ int doc_length(const struct doc *doc)
     return doc->length;
 }
 
+int doc_terms(const struct doc *doc)
+{
+    int c = 0;
+    struct list_node *n = NULL;
+    struct doc_term *t = NULL;
+
+    for (n = list_head(doc->terms); n; n = list_next(n)) {
+        t = (struct doc_term *)list_data(n);
+        if (t->type == EXTERNAL_SCENE)
+            ++c;
+    }
+
+    return c;
+}
+
 int doc_parse(struct doc *doc)
 {
     int s = 0;
-    struct doc_line **line;
-    regex_t re;
+    struct doc_line **line = NULL;
+    struct doc_term *term = NULL;
 
-    if (regcomp(&re, "^[[:blank:]]{2,}EXT.[[:blank:]]{1,}", REG_EXTENDED | REG_NOSUB))
-        return error("failed to compile a regex");
+    if (!doc->terms)
+        list_create(&doc->terms);
 
-    for (line = doc->lines + 1; *line; line++) {
-        if ((*line)->text && (*line)->size > 1) {
-            if ((s = regexec(&re, (*line)->text, 0, NULL, 0)) == 0) {
-                if ((*(line-1))->size == 0 && (*(line+1))->size == 0)
-                    ;
-            }
-        }
-    }
+    match_term_t match_terms[] = {
+        &match_external_scene,
+        &match_internal_scene,
+        NULL
+    };
 
-    regfree(&re);
+    match_term_t *match_term;
+
+    for (line = doc->lines + 1; *line; line++)
+        if ((*line)->size > 1)
+            for (match_term = match_terms; *match_term; match_term++)
+                if (!(*match_term)(line, &term) && term) {
+                    list_append(doc->terms, term, NULL); 
+                    if ((s = doc_line_append_term(*line, term)))
+                        return s;
+                    break;
+                }
 
     return 0;
 }
@@ -143,12 +208,11 @@ int doc_read(int fd, struct doc *doc)
     
     if ((s = list_create(&list)))
         return s;
-
-    while (!stream_read_line(fd, b, DOC_LINE_MAX, &iseof) && !iseof) {
+    for (i = 1; !stream_read_line(fd, b, DOC_LINE_MAX, &iseof) && !iseof; i++) {
         bs = strlen(b) + 1;
-        if ((s = create_line(&line, bs, b)))
+        if ((s = doc_line_create(&line, bs, b, i)))
             return s;
-        if ((s = list_append(list, line, bs, NULL)))
+        if ((s = list_append(list, line, NULL)))
             return s;
     }
 
@@ -157,7 +221,7 @@ int doc_read(int fd, struct doc *doc)
     doc->lines[0] = NULL;
     doc->lines[doc->length + 1] = NULL;
     for (i = 1, node = list_head(list); node; node = list_next(node), i++)
-        doc->lines[i] = (struct doc_line *)list_data(node, NULL);
+        doc->lines[i] = (struct doc_line *)list_data(node);
     list_destroy(&list);
 
     return 0;
@@ -167,22 +231,19 @@ void doc_destroy(struct doc **doc)
 {
     struct doc_line *line = NULL;
 
-    for (line = *(*doc)->lines; line; line++)
+    for (line = *(*doc)->lines; line; line++) {
         free(line->text);
+        free(line);
+    }
     free(*doc);
     *doc = NULL;
 }
 
 int doc_create(struct doc **doc)
 {
-    int s;
-
-    if ((s = alloc_doc(doc)))
-        return s;
-
-    entity[0].comp_regex = (regex_t *)malloc(sizeof(regex_t));
-    if ((s = regcomp(entity[0].comp_regex, entity[0].regex_str, REG_EXTENDED)))
-        return regex_error(s, entity[0].comp_regex);
+    if (!(*doc = malloc(sizeof(struct doc))))
+        return error("failed to allocate memory for a doc");
+    (*doc)->terms = NULL;
 
     return 0;
 }

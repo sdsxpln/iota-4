@@ -9,11 +9,10 @@ This file is part of beta.
 #include <stdlib.h>
 #include <string.h>
 #include "beta/error.h"
-#include "beta/variant.h"
 #include "beta/list.h"
 
 struct list_node {
-    struct variant *data;
+    void *data;
     struct list_node *prev;
     struct list_node *next;
 };
@@ -24,48 +23,11 @@ struct list {
     int length;
 };
 
-static int init_node(void *object, size_t size, struct list_node **node)
-{
-    int s;
-
-    if ((s = variant_create(object, size, &(*node)->data)))
-        return s;
-
-    return 0;
-}
-
-static int alloc_node(struct list_node **node)
+static int create_node(void *data, struct list_node **node)
 {
     if (!(*node = malloc(sizeof(struct list_node))))
         return error("failed to allocate memory for a list node");
-
-    return 0;
-}
-
-static int create_node(void *object, size_t size, struct list_node **node)
-{
-    int s;
-
-    if ((s = alloc_node(node)))
-        return s;
-    if ((s = init_node(object, size, node)))
-        return s;
-
-    return 0;
-}
-
-static int init_list(struct list **list)
-{
-    (*list)->head = (*list)->tail = NULL;
-    (*list)->length = 0;
-
-    return 0;
-}
-
-static int alloc_list(struct list **list)
-{
-    if (!(*list = malloc(sizeof(struct list))))
-        return error("failed to allocate memory for a list");
+    (*node)->data = data;
 
     return 0;
 }
@@ -85,12 +47,9 @@ struct list_node *list_head(const struct list *list)
     return list->head;
 }
 
-void *list_data(const struct list_node *node, size_t *size)
+void *list_data(const struct list_node *node)
 {
-    if (size)
-        *size = variant_size(node->data);
-
-    return variant_object(node->data);
+    return node->data;
 }
 
 void list_delete(struct list *list, const struct list_node *node)
@@ -104,44 +63,42 @@ void list_delete(struct list *list, const struct list_node *node)
     --list->length;
 }
 
-int list_prepend(struct list *list, void *object, size_t size, struct list_node **node)
+int list_prepend(struct list *list, void *data, struct list_node **node)
 {
-    int s;
-    struct list_node *ln = NULL;
+    int s = 0;
+    struct list_node *new_node = NULL;
 
-    if ((s = create_node(object, size, &ln)))
+    if ((s = create_node(data, &new_node)))
         return s;
-    ln->next = list->head;
-    ln->prev = NULL;
+    new_node->next = list->head;
+    new_node->prev = NULL;
     if (list->head)
-        list->head->prev = ln;
-    list->head = ln;
+        list->head->prev = new_node;
+    list->head = new_node;
     ++list->length;
-
     if (node)
-        *node = ln;
+        *node = new_node;
 
     return 0;
 }
 
-int list_append(struct list *list, void *object, size_t size, struct list_node **node)
+int list_append(struct list *list, void *data, struct list_node **node)
 {
     int s = 0;
-    struct list_node *ln = NULL;
+    struct list_node *new_node = NULL;
 
-    if ((s = create_node(object, size, &ln)))
+    if ((s = create_node(data, &new_node)))
         return s;
-    ln->next = NULL;
-    ln->prev = list->tail;
+    new_node->next = NULL;
+    new_node->prev = list->tail;
     if (list->tail)
-        list->tail->next = ln;
-    list->tail = ln;
+        list->tail->next = new_node;
+    list->tail = new_node;
     if (!list->head)
-        list->head = ln;
+        list->head = new_node;
     ++list->length;
-
     if (node)
-        *node = ln;
+        *node = new_node;
 
     return 0;
 }
@@ -153,9 +110,6 @@ void list_destroy(struct list **list)
     if (*list)
         for (this = (*list)->head; this; this = next) {
             next = this->next;
-            /*
-            variant_destroy(&this->data);
-            */
             free(this);
         }
     free(*list);
@@ -164,12 +118,10 @@ void list_destroy(struct list **list)
 
 int list_create(struct list **list)
 {
-    int s;
-
-    if ((s = alloc_list(list)))
-        return s;
-    if ((s = init_list(list)))
-        return s;
+    if (!(*list = malloc(sizeof(struct list))))
+        return error("failed to allocate memory for a list");
+    (*list)->head = (*list)->tail = NULL;
+    (*list)->length = 0;
 
     return 0;
 }

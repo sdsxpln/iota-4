@@ -12,6 +12,7 @@ This file is part of Beta.
 struct doc;
 
 int doc_length(const struct doc *doc);
+int doc_terms(const struct doc *doc);
 int doc_parse(struct doc *doc);
 int doc_read(int fd, struct doc *doc);
 void doc_destroy(struct doc **doc);

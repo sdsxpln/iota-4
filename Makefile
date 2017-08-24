@@ -17,11 +17,7 @@ objects += warning.o
 objects += trace.o
 objects += debug.o
 objects += stream.o
-objects += string.o
-objects += variant.o
-objects += buffer.o
 objects += list.o
-objects += tree.o
 objects += doc.o
 
 commands += scan

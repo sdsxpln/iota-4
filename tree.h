@@ -1,8 +1,10 @@
 /*
- * a tree structures and routines
- * Copyright (C) 2013-2017 xinoir <xinoir@theta.black>
- * This file is part of beta.
- */
+
+tree structures and routines
+Copyright (C) 2013-2017 xinoir <xinoir@theta.black>
+This file is part of beta.
+
+*/
 
 #ifndef TREE_H
 #define TREE_H

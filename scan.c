@@ -32,6 +32,9 @@ int main(int argc, char **argv)
     if ((s = doc_parse(doc)))
         return error("failed to analyze a doc");
 
+    l = doc_terms(doc);
+    fprintf(stdout, "doc terms: [%d]\n", l);
+
     doc_destroy(&doc);
 
     log_deinit("scan");
