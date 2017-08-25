@@ -1,8 +1,10 @@
 /*
- * log utility structures and routines
- * Copyright (C) 2013-2017 xinoir <xinoir@theta.black>
- * This file is part of beta.
- */
+
+log utility structures and routines
+Copyright (C) 2013-2017 xinoir <xinoir@theta.black>
+This file is part of beta.
+
+*/
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -138,9 +140,7 @@ void log_deinit(const char *module)
     const int status = errno;
 
     closelog();
-#ifdef TRACE
     trace("deinited log for [%s]", module);
-#endif
 
     errno = status;
 }
@@ -151,9 +151,7 @@ void log_init(const char *module)
 
     openlog(module, LOG_OPTION, LOG_FACILITY);
     setlogmask(LOG_UPTO(LOG_MASK));
-#ifdef TRACE
     trace("inited log for [%s]", module);
-#endif
 
     errno = status;
 }

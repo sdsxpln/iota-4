@@ -18,6 +18,7 @@ objects += trace.o
 objects += debug.o
 objects += stream.o
 objects += list.o
+objects += regex.o
 objects += doc.o
 
 commands += scan

@@ -6,27 +6,14 @@ This file is part of Beta.
 
 */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include <limits.h>
-#include <unistd.h>
-#include <regex.h>
 #include "beta/error.h"
 #include "beta/stream.h"
 #include "beta/list.h"
+#include "beta/regex.h"
 #include "beta/doc.h"
 
 #define DOC_LINE_MAX 4096
-#define ERROR_MESSAGE_MAX 256
-
-enum doc_term_type {
-    UNKNOWN,
-    EXTERNAL_SCENE,
-    INTERNAL_SCENE
-};
 
 struct doc_line;
 
@@ -47,70 +34,6 @@ struct doc {
     struct doc_line **lines;
     int length;
 };
-
-typedef int (* match_term_t)(struct doc_line **, struct doc_term **);
-static int regex_error(int en, const regex_t *regex);
-
-static int match_internal_scene(struct doc_line **l, struct doc_term **t)
-{
-    int s = 0;
-    static const enum doc_term_type type = INTERNAL_SCENE;
-    static const char pattern[] = "^[[:blank:]]{2,}INT.[[:blank:]]{1,}";
-    static int regex_flag = 0;
-    static regex_t regex;
-    *t = NULL;
-
-    if (!regex_flag) {
-        if ((s = regcomp(&regex, pattern, REG_EXTENDED)) != 0)
-            return regex_error(s, &regex);
-        regex_flag = 1;
-    }
-
-    if (!regexec(&regex, (*l)->text, 0, NULL, 0)) {
-        if ((*(l-1))->size == 0 && (*(l+1))->size == 0) {
-            *t = (struct doc_term *)malloc(sizeof(struct doc_term));
-            (*t)->type = type;
-            (*t)->line = *l;
-        }
-    }
-
-    return s;
-}
-
-static int match_external_scene(struct doc_line **line, struct doc_term **term)
-{
-    int s = 0;
-    static const enum doc_term_type term_type = EXTERNAL_SCENE;
-    static const char pattern[] = "^[[:blank:]]{2,}EXT.[[:blank:]]{1,}";
-    static int regex_flag = 0;
-    static regex_t regex;
-    *term = NULL;
-
-    if (!regex_flag) {
-        if ((s = regcomp(&regex, pattern, REG_EXTENDED)) != 0)
-            return regex_error(s, &regex);
-        regex_flag = 1;
-    }
-
-    if (!regexec(&regex, (*line)->text, 0, NULL, 0)) {
-        if ((*(line-1))->size == 0 && (*(line+1))->size == 0) {
-            *term = (struct doc_term *)malloc(sizeof(struct doc_term));
-            (*term)->type = term_type;
-            (*term)->line = *line;
-        }
-    }
-
-    return s;
-}
-
-static int regex_error(int en, const regex_t *regex)
-{
-    size_t regex_en = 0;
-    char regex_em[ERROR_MESSAGE_MAX] = {0};
-
-    regex_en = regerror(en, regex, regex_em, sizeof regex_em);
-    return error("ERROR: number: [%d], message: [%s]\n", regex_en, regex_em);
-}
 
 static int doc_line_create(struct doc_line **line, size_t nb, const char *b, int index)
 {
@@ -145,42 +68,20 @@ static int doc_line_append_term(struct doc_line *line, struct doc_term *term)
     return 0;
 }
 
-int doc_length(const struct doc *doc)
+int doc_analyze(int fdo, const struct doc *doc)
 {
-    return doc->length;
+    return 0;
 }
 
-int doc_terms(const struct doc *doc)
-{
-    int c = 0;
-    struct list_node *n = NULL;
-    struct doc_term *t = NULL;
-
-    for (n = list_head(doc->terms); n; n = list_next(n)) {
-        t = (struct doc_term *)list_data(n);
-        if (t->type == EXTERNAL_SCENE)
-            ++c;
-    }
-
-    return c;
-}
-
-int doc_parse(struct doc *doc)
+int doc_parse(struct doc *doc, match_term_t **match_terms)
 {
     int s = 0;
     struct doc_line **line = NULL;
     struct doc_term *term = NULL;
+    match_term_t *match_term = NULL;
 
     if (!doc->terms)
         list_create(&doc->terms);
-
-    match_term_t match_terms[] = {
-        &match_external_scene,
-        &match_internal_scene,
-        NULL
-    };
-
-    match_term_t *match_term;
 
     for (line = doc->lines + 1; *line; line++)
         if ((*line)->size > 1)
@@ -195,31 +96,27 @@ int doc_parse(struct doc *doc)
     return 0;
 }
 
-int doc_read(int fd, struct doc *doc)
+int doc_read(int fdi, struct doc *doc)
 {
-    int s = 0;
-    int i = 0;
-    int iseof = 0;
+    int s, i, iseof;
     char b[DOC_LINE_MAX] = {0};
-    int bs = 0;
     struct list *list = NULL;
     struct list_node *node = NULL;
     struct doc_line *line = NULL;
     
     if ((s = list_create(&list)))
         return s;
-    for (i = 1; !stream_read_line(fd, b, DOC_LINE_MAX, &iseof) && !iseof; i++) {
-        bs = strlen(b) + 1;
-        if ((s = doc_line_create(&line, bs, b, i)))
+    for (i = 1; !stream_read_line(fdi, b, DOC_LINE_MAX, &iseof) && !iseof; i++) {
+        if ((s = doc_line_create(&line, strlen(b) + 1, b, i)))
             return s;
         if ((s = list_append(list, line, NULL)))
             return s;
     }
 
     doc->length = list_length(list);
-    doc->lines = (struct doc_line **)malloc((doc->length + 2) * sizeof(struct doc_line *));
-    doc->lines[0] = NULL;
-    doc->lines[doc->length + 1] = NULL;
+    if (!(doc->lines = (struct doc_line **)malloc((doc->length + 2) * sizeof(struct doc_line *))))
+        return error("failed to allocate memory for a doc lines");
+    doc->lines[0] = doc->lines[doc->length + 1] = NULL;
     for (i = 1, node = list_head(list); node; node = list_next(node), i++)
         doc->lines[i] = (struct doc_line *)list_data(node);
     list_destroy(&list);
