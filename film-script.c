@@ -11,37 +11,42 @@ This file is part of Beta.
 #include "beta/error.h"
 #include "beta/regex.h"
 #include "beta/doc.h"
+#include "beta/film-script.h"
 
-enum film_script_term_type {
+enum term_type {
     UNKNOWN,
     EXTERNAL_SCENE,
     INTERNAL_SCENE
 };
 
-match_term_t match_terms[] = {
-    &match_external_scene,
-    &match_internal_scene,
+struct term_attr {
+    char *pattern;
+    regex_t regex;
+    match_term matcher;
+};
+
+static int match_internal_scene(struct doc_line **, struct doc_term **);
+static int match_external_scene(struct doc_line **, struct doc_term **);
+
+struct term_attr *term_attrs[] = {
+    [UNKNOWN] = NULL,
+    [EXTERNAL_SCENE] = &(struct term_attr){
+        .pattern = "^[[:blank:]]{2,}EXT.[[:blank:]]{1,}",
+        .matcher = &match_external_scene
+    },
+    [INTERNAL_SCENE] = &(struct term_attr){
+        .pattern = "^[[:blank:]]{2,}INT.[[:blank:]]{1,}",
+        .matcher = &match_internal_scene
+    },
     NULL
 };
 
-match_term_t *match_term;
-
 static int match_internal_scene(struct doc_line **line, struct doc_term **term)
 {
-    int s = 0;
-    static const enum film_script_term_type type = INTERNAL_SCENE;
-    static const char pattern[] = "^[[:blank:]]{2,}INT.[[:blank:]]{1,}";
-    static int regex_flag = 0;
-    static regex_t regex;
-    *term = NULL;
+    static enum term_type type = INTERNAL_SCENE;
+    struct term_attr *attr = term_attrs[type];
 
-    if (!regex_flag) {
-        if ((s = regcomp(&regex, pattern, REG_EXTENDED)))
-            return regex_error(s, &regex);
-        regex_flag = 1;
-    }
-
-    if (!regexec(&regex, (*line)->text, 0, NULL, 0)) {
+    if (!regexec(&attr->regex, (*line)->text, 0, NULL, 0)) {
         if ((*(line-1))->size == 0 && (*(line+1))->size == 0) {
             *term = (struct doc_term *)malloc(sizeof(struct doc_term));
             (*term)->type = type;
@@ -49,25 +54,15 @@ static int match_internal_scene(struct doc_line **line, struct doc_term **term)
         }
     }
 
-    return s;
+    return 0;
 }
 
 static int match_external_scene(struct doc_line **line, struct doc_term **term)
 {
-    int s = 0;
-    static const enum film_script_term_type type = EXTERNAL_SCENE;
-    static const char pattern[] = "^[[:blank:]]{2,}EXT.[[:blank:]]{1,}";
-    static int regex_flag = 0;
-    static regex_t regex;
-    *term = NULL;
+    static enum term_type type = EXTERNAL_SCENE;
+    struct term_attr *attr = term_attrs[type];
 
-    if (!regex_flag) {
-        if ((s = regcomp(&regex, pattern, REG_EXTENDED)))
-            return regex_error(s, &regex);
-        regex_flag = 1;
-    }
-
-    if (!regexec(&regex, (*line)->text, 0, NULL, 0)) {
+    if (!regexec(&attr->regex, (*line)->text, 0, NULL, 0)) {
         if ((*(line-1))->size == 0 && (*(line+1))->size == 0) {
             *term = (struct doc_term *)malloc(sizeof(struct doc_term));
             (*term)->type = type;
@@ -75,6 +70,24 @@ static int match_external_scene(struct doc_line **line, struct doc_term **term)
         }
     }
 
-    return s;
+    return 0;
+}
+
+int film_script_init_term_matchers(match_term **term_matchers)
+{
+    int s;
+    struct term_attr *attr;
+    static match_term matchers[] = {
+        &match_external_scene,
+        &match_internal_scene,
+        NULL
+    };
+
+    attr = term_attrs[EXTERNAL_SCENE];
+    if ((s = regcomp(&attr->regex, attr->pattern, REG_EXTENDED)))
+        return regex_error(s, &attr->regex);
+    *term_matchers = matchers;
+
+    return 0;
 }
 

@@ -6,6 +6,7 @@ This file is part of Beta.
 
 */
 
+#include <string.h>
 #include <stdlib.h>
 #include "beta/error.h"
 #include "beta/stream.h"
@@ -14,26 +15,6 @@ This file is part of Beta.
 #include "beta/doc.h"
 
 #define DOC_LINE_MAX 4096
-
-struct doc_line;
-
-struct doc_term {
-    enum doc_term_type type;
-    struct doc_line *line;
-};
-
-struct doc_line {
-    struct list *terms;
-    char *text;
-    int size;
-    int index;
-};
-
-struct doc {
-    struct list *terms;
-    struct doc_line **lines;
-    int length;
-};
 
 static int doc_line_create(struct doc_line **line, size_t nb, const char *b, int index)
 {
@@ -57,7 +38,7 @@ static int doc_line_create(struct doc_line **line, size_t nb, const char *b, int
 
 static int doc_line_append_term(struct doc_line *line, struct doc_term *term)
 {
-    int s = 0;
+    int s;
 
     if (!line->terms)
         if ((s = list_create(&line->terms)))
@@ -73,25 +54,26 @@ int doc_analyze(int fdo, const struct doc *doc)
     return 0;
 }
 
-int doc_parse(struct doc *doc, match_term_t **match_terms)
+int doc_parse(struct doc *doc, match_term *term_matchers)
 {
-    int s = 0;
-    struct doc_line **line = NULL;
-    struct doc_term *term = NULL;
-    match_term_t *match_term = NULL;
+    int s;
+    struct doc_line **line;
+    struct doc_term *term;
+    match_term *matchers;
 
     if (!doc->terms)
         list_create(&doc->terms);
-
     for (line = doc->lines + 1; *line; line++)
         if ((*line)->size > 1)
-            for (match_term = match_terms; *match_term; match_term++)
-                if (!(*match_term)(line, &term) && term) {
+            for (matchers = term_matchers; *matchers; matchers++) {
+                term = NULL;
+                if (!(**matchers)(line, &term) && term) {
                     list_append(doc->terms, term, NULL); 
                     if ((s = doc_line_append_term(*line, term)))
                         return s;
                     break;
                 }
+            }
 
     return 0;
 }
@@ -99,10 +81,10 @@ int doc_parse(struct doc *doc, match_term_t **match_terms)
 int doc_read(int fdi, struct doc *doc)
 {
     int s, i, iseof;
-    char b[DOC_LINE_MAX] = {0};
-    struct list *list = NULL;
-    struct list_node *node = NULL;
-    struct doc_line *line = NULL;
+    char b[DOC_LINE_MAX];
+    struct list *list;
+    struct list_node *node;
+    struct doc_line *line;
     
     if ((s = list_create(&list)))
         return s;
@@ -112,7 +94,6 @@ int doc_read(int fdi, struct doc *doc)
         if ((s = list_append(list, line, NULL)))
             return s;
     }
-
     doc->length = list_length(list);
     if (!(doc->lines = (struct doc_line **)malloc((doc->length + 2) * sizeof(struct doc_line *))))
         return error("failed to allocate memory for a doc lines");
@@ -126,7 +107,7 @@ int doc_read(int fdi, struct doc *doc)
 
 void doc_destroy(struct doc **doc)
 {
-    struct doc_line *line = NULL;
+    struct doc_line *line;
 
     for (line = *(*doc)->lines; line; line++) {
         free(line->text);

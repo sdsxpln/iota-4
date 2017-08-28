@@ -9,5 +9,7 @@ This file is part of Beta.
 #ifndef FILM_SCRIPT_H
 #define FILM_SCRIPT_H
 
+int film_script_init_term_matchers(match_term **term_matchers);
+
 #endif
 

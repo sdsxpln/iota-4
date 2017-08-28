@@ -20,6 +20,7 @@ objects += stream.o
 objects += list.o
 objects += regex.o
 objects += doc.o
+objects += film-script.o
 
 commands += scan
 
