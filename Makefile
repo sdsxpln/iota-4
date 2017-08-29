@@ -4,7 +4,7 @@
 
 CC = cc
 CFLAGS = -g -O0
-CFLAGS += -Wall -Wextra
+CFLAGS += -Wall -Wextra libWN.a
 CFLAGS += -iquote..
 SYM = .dSYM
 
@@ -22,10 +22,13 @@ objects += regex.o
 objects += doc.o
 objects += film-script.o
 
+commands += word
 commands += scan
 
 export objects
 
+all: word scan
+word: word.c $(objects); $(QUIET_CC)$(CC) $(CFLAGS) $(objects) word.c -o word
 scan: scan.c $(objects); $(QUIET_CC)$(CC) $(CFLAGS) $(objects) scan.c -o scan
 objects: $(objects)
 $(objects): %.o: %.c %.h; $(QUIET_CC)$(CC) $(CFLAGS) -o $@ -c $<
