@@ -11,23 +11,21 @@ SYM = .dSYM
 QUIET_CC = @echo CC $@;
 
 objects += log.o
-objects += fatal.o
 objects += error.o
-objects += warning.o
-objects += trace.o
-objects += debug.o
 objects += stream.o
+objects += string.o
 objects += list.o
+objects += tree.o
+objects += hash.o
+objects += map.o
 objects += regex.o
-objects += doc.o
-objects += film-script.o
+objects += stopword.o
 
 commands += word
-commands += scan
 
 export objects
 
-all: word scan
+all: word
 word: word.c $(objects); $(QUIET_CC)$(CC) $(CFLAGS) $(objects) word.c -o word
 scan: scan.c $(objects); $(QUIET_CC)$(CC) $(CFLAGS) $(objects) scan.c -o scan
 objects: $(objects)

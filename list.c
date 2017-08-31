@@ -7,29 +7,34 @@ This file is part of beta.
 */
 
 #include <stdlib.h>
-#include <string.h>
 #include "beta/error.h"
 #include "beta/list.h"
 
 struct list_node {
-    void *data;
+    const void *key;
+    const void *object;
     struct list_node *prev;
     struct list_node *next;
 };
 
 struct list {
+    int length;
     struct list_node *head;
     struct list_node *tail;
-    int length;
 };
 
-static int create_node(void *data, struct list_node **node)
+static struct list_node *create_node(const void *key, const void *object)
 {
-    if (!(*node = malloc(sizeof(struct list_node))))
-        return error("failed to allocate memory for a list node");
-    (*node)->data = data;
+    struct list_node *node;
 
-    return 0;
+    if (!(node = (struct list_node *)malloc(sizeof(struct list_node)))) {
+        error("failed to allocate memory for a list node");
+        return NULL;
+    }
+    node->key = key;
+    node->object = object;
+
+    return node;
 }
 
 int list_length(const struct list *list)
@@ -42,14 +47,25 @@ struct list_node *list_next(const struct list_node *node)
     return node->next;
 }
 
+struct list_node *list_tail(const struct list *list)
+{
+    return list->tail;
+}
+
+
 struct list_node *list_head(const struct list *list)
 {
     return list->head;
 }
 
-void *list_data(const struct list_node *node)
+void *list_node_key(const struct list_node *node)
 {
-    return node->data;
+    return (void *)node->key;
+}
+
+void *list_node_object(const struct list_node *node)
+{
+    return (void *)node->object;
 }
 
 void list_delete(struct list *list, const struct list_node *node)
@@ -63,49 +79,48 @@ void list_delete(struct list *list, const struct list_node *node)
     --list->length;
 }
 
-int list_prepend(struct list *list, void *data, struct list_node **node)
+struct list_node *list_prepend(struct list *list, const void *key, const void *object)
 {
-    int s = 0;
-    struct list_node *new_node = NULL;
+    struct list_node *node;
 
-    if ((s = create_node(data, &new_node)))
-        return s;
-    new_node->next = list->head;
-    new_node->prev = NULL;
+    if (!(node = create_node(key, object))) {
+        error("failed to create a list node");
+        return NULL;
+    }
+    node->next = list->head;
+    node->prev = NULL;
     if (list->head)
-        list->head->prev = new_node;
-    list->head = new_node;
+        list->head->prev = node;
+    list->head = node;
     ++list->length;
-    if (node)
-        *node = new_node;
 
-    return 0;
+    return node;
 }
 
-int list_append(struct list *list, void *data, struct list_node **node)
+struct list_node *list_append(struct list *list, const void *key, const void *object)
 {
-    int s = 0;
-    struct list_node *new_node = NULL;
+    struct list_node *node;
 
-    if ((s = create_node(data, &new_node)))
-        return s;
-    new_node->next = NULL;
-    new_node->prev = list->tail;
+    if (!(node = create_node(key, object))) {
+        error("failed to create a list node");
+        return NULL;
+    }
+    node->next = NULL;
+    node->prev = list->tail;
     if (list->tail)
-        list->tail->next = new_node;
-    list->tail = new_node;
+        list->tail->next = node;
+    list->tail = node;
     if (!list->head)
-        list->head = new_node;
+        list->head = node;
     ++list->length;
-    if (node)
-        *node = new_node;
 
-    return 0;
+    return node;
 }
 
 void list_destroy(struct list **list)
 {
     struct list_node *this, *next;
+
     this = next = NULL;
     if (*list)
         for (this = (*list)->head; this; this = next) {
@@ -116,13 +131,17 @@ void list_destroy(struct list **list)
     *list = NULL;
 }
 
-int list_create(struct list **list)
+struct list *list_create()
 {
-    if (!(*list = malloc(sizeof(struct list))))
-        return error("failed to allocate memory for a list");
-    (*list)->head = (*list)->tail = NULL;
-    (*list)->length = 0;
+    struct list *list;
 
-    return 0;
+    if (!(list = (struct list *)malloc(sizeof(struct list)))) {
+        error("failed to allocate memory for a list");
+        return NULL;
+    }
+    list->head = list->tail = NULL;
+    list->length = 0;
+
+    return list;
 }
 

@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
@@ -54,6 +55,25 @@ void string_from_int(char *string, int integer)
 
     string[++i] = '\0';
     string_reverse(string);
+}
+
+char *string_copy(const char *string, size_t size)
+{
+    char *b;
+    int bs;
+    int string_length;
+    
+    string_length = strlen(string);
+    bs = string_length < size ? string_length + 1 : size - 1;
+    if (!(b = (char *)malloc(sizeof(char) * bs))) {
+        error("failed to allocate memory for a string copy");
+        return NULL;
+    }
+
+    strncpy(b, string, bs);
+    *(b + bs) = '\0';
+
+    return b;
 }
 
 int string_append(char *buffer, size_t size, const char *string, ...)

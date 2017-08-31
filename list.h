@@ -14,13 +14,15 @@ struct list;
 
 int list_length(const struct list *list);
 struct list_node *list_next(const struct list_node *node);
+struct list_node *list_tail(const struct list *list);
 struct list_node *list_head(const struct list *list);
-void *list_data(const struct list_node *node);
+void *list_node_key(const struct list_node *node);
+void *list_node_object(const struct list_node *node);
 void list_delete(struct list *list, const struct list_node *node);
-int list_prepend(struct list *list, void *data, struct list_node **node);
-int list_append(struct list *list, void *data, struct list_node **node);
+struct list_node *list_prepend(struct list *list, const void *key, const void *object);
+struct list_node *list_append(struct list *list, const void *key, const void *object);
 void list_destroy(struct list **list);
-int list_create(struct list **list);
+struct list *list_create();
 
 #endif
 

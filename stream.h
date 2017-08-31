@@ -1,7 +1,7 @@
 /*
 
 stream structures and routines
-Copyright (C) 2013-2017 xinoir <xinoir@theta.black>
+Copyright (C) 2013-2017 Roman Fakhrazeyev <xinoir@theta.black>
 This file is part of Beta.
 
 */
