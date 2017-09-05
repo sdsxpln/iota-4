@@ -10,11 +10,15 @@ This file is part of beta.
 #define MAP_H
 
 struct map;
+typedef unsigned (* hash)(const void *, int);
+typedef int (* compare)(const void *, const void *);
 
+void **map_to_array(const struct map *, size_t *length);
+int map_contains(const struct map *, const void *key);
 void *map_lookup(const struct map *, const void *key);
 int map_install(struct map *, const void *key, const void *object);
-struct map *map_create(int size, unsigned (* hash)(const void *, int),
-        int (* compare)(const void *, const void *));
+void map_destroy(struct map **);
+struct map *map_create(int size, hash, compare);
 
 #endif
 

@@ -11,6 +11,8 @@ SYM = .dSYM
 QUIET_CC = @echo CC $@;
 
 objects += log.o
+objects += debug.o
+objects += trace.o
 objects += error.o
 objects += stream.o
 objects += string.o

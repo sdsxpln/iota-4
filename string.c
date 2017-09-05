@@ -1,8 +1,8 @@
 /*
- * string library of routines
- * Copyright (C) 2013-2017 xinoir <xinoir@theta.black>
- * This file is part of beta.
- */
+string library of routines
+Copyright (C) 2013-2017 Roman Fakhrazeyev <xinoir@theta.black>
+This file is part of beta.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +12,7 @@
 #include "beta/error.h"
 #include "beta/string.h"
 
-int string_word(FILE *f, char *w, size_t nc)
+int string_stream_word(FILE *f, char *w, size_t nc)
 {
     char c;
 
@@ -29,6 +29,19 @@ int string_word(FILE *f, char *w, size_t nc)
     *++w = 0;
 
     return 0;
+}
+
+char *string_word(const char *s, char **p, char *w) {
+    int ncr;
+    for (; *p && !isalnum(**p); (*p)++)
+        if (**p == '\0') {
+            --*p;
+            return NULL;
+        }
+    for (ncr = 0; *p && isalnum(**p); ncr++)
+        *w++ = *(*p)++;
+    *w = '\0';
+    return w - ncr;
 }
 
 void string_reverse(char *string)
