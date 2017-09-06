@@ -4,7 +4,7 @@
 
 CC = cc
 CFLAGS = -g -O0
-CFLAGS += -Wall -Wextra libWN.a
+CFLAGS += -Wall -Wextra -lm
 CFLAGS += -iquote..
 SYM = .dSYM
 

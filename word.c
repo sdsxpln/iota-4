@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
-#include "wn.h"
 #include "beta/debug.h"
 #include "beta/trace.h"
 #include "beta/error.h"
@@ -59,47 +58,6 @@ int _search_word(char *word)
 {
     if (map_contains(words_map, word))
         return 1;
-    return 0;
-}
-
-int search_word(char *word, int *found, char **token)
-{
-    int i;
-    char *lemma;
-    Synset *result, *synset, *sense;
-    clock_t begin, end;
-    double cpu_time;
-
-    begin = clock();
-
-    *found = 0;
-    lemma = word;
-/*
-    if (!(lemma = morphstr(word, NOUN)))
-        lemma = word;
-*/
-
-    if (!(result = findtheinfo_ds(lemma, NOUN, -HYPERPTR, ALLSENSES))) {
-        debug("failed searching for lemma [%s] of a word [%s]\n", lemma, word);
-        return -1;
-    }
-    for (sense = result; sense; sense = sense->nextss)
-        for (synset = sense->ptrlist; synset; synset = synset->ptrlist)
-            for (i = 0; i != synset->wcount; i++)
-                if (strcmp(*(synset->words + i), "food") == 0) {
-                    debug("food: [%s], def: [%s]\n", lemma, synset->defn);
-                    *found = 1;
-                    *token = lemma;
-                    goto finally;
-                }
-    finally:
-    if (result)
-        free_synset(result);
-
-    end = clock();
-    cpu_time = (double)(end - begin) / CLOCKS_PER_SEC;
-    trace("cpu time: [%f]\n", cpu_time);
-
     return 0;
 }
 
@@ -194,10 +152,6 @@ int tokenize()
     foods = tree_create(&compare_food, &write_food);
 
     fdi = fileno(stdin);
-    if ((s = wninit()))
-        return error("failed to init wn db [%d]\n", s);
-    if ((s = morphinit()))
-        return error("failed to init wn morph [%d]\n", s);
 
     for ( ; !stream_read_line(fdi, l, LINE_MAX, &iseof) && !iseof; ) {
         struct map *m = map_create(31, hash_string, strcmp);
@@ -243,6 +197,7 @@ int tokenize()
     return 0;
 }
 
+/*
 int analyze_frequency()
 {
     int s, iseof, fdi;
@@ -261,10 +216,6 @@ int analyze_frequency()
     stopword = stopword_create(fileno(stopword_stream));
     foods = tree_create(&compare_food, &write_food);
     fdi = fileno(stdin);
-    if ((s = wninit()))
-        return error("failed to init wn db [%d]\n", s);
-    if ((s = morphinit()))
-        return error("failed to init wn morph [%d]\n", s);
     for ( ; !stream_read_word(fdi, w, WORD_MAX, &iseof) && !iseof; )
         if (strlen(w) > 1 && !stopword_contains(stopword, w))
             if (!search_word(w, &found, &token) && found) {
@@ -285,6 +236,7 @@ int analyze_frequency()
 
     return 0;
 }
+*/
 
 int main(void)
 {
