@@ -17,7 +17,7 @@
 #define LINE_MAX 4096
 #define WORD_SIZE 128
 
-const char *STOPWORD_PATH = "STOPWORD_PATH";
+const char *STOPWORDS_PATH = "STOPWORDS_PATH";
 const char *MORPH_EXCEPTIONS_PATH = "MORPH_EXCEPTIONS_PATH";
 const char *WORDS_PATH = "WORDS_PATH";
 
@@ -119,7 +119,7 @@ int tokenize()
     char *words_path;
     int words_stream;
 
-    if (!(stopword_path = getenv(STOPWORD_PATH)))
+    if (!(stopword_path = getenv(STOPWORDS_PATH)))
         return error("env var STOPWORD_PATH not set");
     if (!(morph_exceptions_path = getenv(MORPH_EXCEPTIONS_PATH)))
         return error("env var MORPH_EXCEPTIONS_PATH not set");
