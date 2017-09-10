@@ -22,11 +22,11 @@ struct map {
 static int map_num_of_objects(const struct map *map)
 {
     int n = 0;
-    struct list **b = map->buckets;
+    struct list **bucket = map->buckets;
 
-    for (int i = 0; i < map->size; i++, b++)
-        if (*b)
-            n += list_length(*b);
+    for (int i = 0; i < map->size; i++, bucket++)
+        if (*bucket)
+            n += list_length(*bucket);
 
     return n;
 }
@@ -50,8 +50,8 @@ void **map_to_array(const struct map *map, size_t *length)
 
 int map_contains(const struct map *map, const void *key)
 {
-    struct list *list;
-    struct list_node *node;
+    struct list *list = NULL;
+    struct list_node *node = NULL;
 
     if ((list = *(map->buckets + map->hash(key, map->size))))
         for (node = list_head(list); node; node = list_next(node))
@@ -76,7 +76,7 @@ void *map_lookup(const struct map *map, const void *key)
 
 int map_install(struct map *map, const void *key, const void *object)
 {
-    struct list *bucket;
+    struct list *bucket = NULL;
 
     if (!(bucket = *(map->buckets + map->hash(key, map->size))))
         bucket = list_create();
