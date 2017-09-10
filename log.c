@@ -118,8 +118,10 @@ void log_error(const char *format, va_list va, int error)
     const int status = errno;
     char buffer[LOG_MESSAGE_MAX_SIZE];
 
-    if (!make_log_message(buffer, sizeof(buffer), format, va, error))
+    if (!make_log_message(buffer, sizeof(buffer), format, va, error)) {
         syslog(LOG_ERR, "%s", buffer);
+        fprintf(stderr, "%s", buffer);
+    }
 
     errno = status;
 }
