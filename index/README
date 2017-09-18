@@ -1,0 +1,27 @@
+INDEX
+
+REQUIREMENTS
+
+JDK8
+
+BUILD
+
+./build.sh
+
+RUN
+
+indexer is expecting a stream of records on stdin with 3 string fields "key",
+"data", and "text" delimited by a horizontal tab character (0x09).
+
+"key" uniquely identifies a document, and "text" will be indexed.
+
+There are 2 requirements input arguments:
+-u: a filesystem location where the index will be created.
+-t: a legacy index type, a string.
+
+EXAMPLE
+
+cat|./indexer.sh -u /tmp/my-index -t my-type <<-@
+key      data    text
+@
+
