@@ -1,0 +1,14 @@
+SEARCH AGAINST LOCAL INDEX
+
+REQUIREMENTS
+
+JDK8
+
+BUILD
+
+./build.sh
+
+RUN
+
+./search.sh
+
