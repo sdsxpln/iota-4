@@ -1,0 +1,37 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    compile 'com.google.guava:guava:22.0'
+    compile 'org.apache.commons:commons-collections4:4.1'
+    testCompile 'junit:junit:4.9'
+}
+
+mainClassName = 'Search'
+sourceCompatibility = '1.8'
+version = '1.0.0'
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'black.theta.iota.search',
+            'Implementation-Version': version
+    }
+}
+
+test {
+    systemProperties 'property': 'value'
+}
+
+uploadArchives {
+    repositories {
+        flatDir {
+            dirs '/xi/var/lib/java/black.theta.search'
+        }
+    }
+}
+
